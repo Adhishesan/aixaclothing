@@ -188,7 +188,7 @@ function renderProducts(products){
     const name=p.name||"No name",desc=p.description||"",price=p.price||"-",image=p.image||"https://via.placeholder.com/400x300?text=No+image";
     const card=document.createElement("div");
     card.className="product-card";
-    card.innerHTML=`<div class="image-wrapper"><img src="${image}" alt="${name}"><button class="plus-btn">+</button></div><h3>${name}</h3><p>${desc}</p><div class="price">RS.${price}</div>`;
+    card.innerHTML=`<div class="image-wrapper"><img src="${image}" alt="${name}"><button class="plus-btn">+</button></div><h3>${name}</h3><p>${desc}</p><div class="price">rs.${price}</div>`;
     section.appendChild(card);
     
     // ✅ Added toast when item added to cart
@@ -329,3 +329,4 @@ loadProducts(false);
 </script>
 </body>
 </html>
+
