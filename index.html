@@ -82,6 +82,61 @@ svg{stroke:black;stroke-width:1.3;fill:none;width:26px;height:26px;display:block
 .menu-swipe img{height:120px;border-radius:12px;flex-shrink:0;width:200px;object-fit:cover;}
 .menu-options{display:flex;flex-direction:column;align-items:center;margin-top:20px;gap:20px;}
 .menu-options button{width:60%;padding:12px 0;font-size:18px;border-radius:12px;border:1px solid #000;background:white;cursor:pointer;}
+#fullView {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  color: #fff;
+  z-index: 9999;
+  display: none;
+  overflow-y: auto;
+}
+
+#fullViewClose {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  color: #000;
+  font-size: 35px;
+  cursor: pointer;
+  z-index: 10000;
+}
+
+#fullViewImages {
+  width: 100%;
+  display: flex;
+  overflow-x: scroll;
+  scroll-snap-type: x mandatory;
+}
+
+#fullViewImages img {
+  width: 100%;
+  height: auto;
+  scroll-snap-align: center;
+}
+
+#fullViewBottom {
+  padding: 20px;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.15); /* optional premium look */
+}
+#fvAddBtn {
+  width: 100%;
+  padding: 15px;
+  border: 2px solid #000;
+  background: #fff;
+  color: #000;
+  font-size: 20px;
+  letter-spacing: 2px;
+  margin-top: 15px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+  .toast {
+    z-index: 9999999 !important;
+    position: fixed;
+}
 </style>
 </head>
 <body>
@@ -133,7 +188,20 @@ svg{stroke:black;stroke-width:1.3;fill:none;width:26px;height:26px;display:block
   <span class="close-btn" id="closeInfo">&times;</span>
   <div class="popup-content" id="infoContent"></div>
 </div>
+<!-- FULL SCREEN PRODUCT VIEW -->
+<div id="fullView" style="display:none;">
+  <div id="fullViewClose">×</div>
 
+  <div id="fullViewImages"></div>
+
+  <div id="fullViewBottom">
+      <h2 id="fvName"></h2>
+      <p id="fvPrice"></p>
+      <p id="fvDesc"></p>
+
+      <button id="fvAddBtn">ADD</button>
+  </div>
+</div>
 <!-- Menu View -->
 <div class="menu-view" id="menuSection">
   <div class="menu-swipe">
@@ -190,14 +258,24 @@ function renderProducts(products){
     card.className="product-card";
     card.innerHTML=`<div class="image-wrapper"><img src="${image}" alt="${name}"><button class="plus-btn">+</button></div><h3>${name}</h3><p>${desc}</p><div class="price">Rs.${price}</div>`;
     section.appendChild(card);
-    
+    // Full screen view when card is clicked
+card.addEventListener("click", () => {
+    openFullView(p);
+});
     // ✅ Added toast when item added to cart
-    card.querySelector(".plus-btn").addEventListener("click",()=>{
-      const existing=cart.find(item=>item.name===name);
-      if(existing){existing.qty+=1;} 
-      else {cart.push({name,desc,price,image,qty:1});}
-      showToast("Item added to cart!");
-    });
+card.querySelector(".plus-btn").addEventListener("click", (event) => {
+    // ⛔ Stop the click from triggering image fullscreen
+    event.stopPropagation();
+
+    const existing = cart.find(item => item.name === name);
+    if (existing) {
+        existing.qty += 1;
+    } else {
+        cart.push({ name, desc, price, image, qty: 1 });
+    }
+
+    showToast("Item added to cart!");
+});
   });
 }
 
@@ -218,26 +296,146 @@ function renderCart(){
     div.querySelector(".remove-btn").addEventListener("click",()=>{cart.splice(index,1);renderCart();});
   });
   footer.style.display="flex";
-  footer.querySelector(".total").textContent=`Total: Rs.${total}`;
+footer.querySelector(".total").textContent=`Total: Rs.${total}`;
 }
-
-/* Views */
+  /* Views */
 const homeSection=document.getElementById("homeSection");
 const productSection=document.getElementById("productSection");
 const cartSection=document.getElementById("cartSection");
 const menuSection=document.getElementById("menuSection");
 const searchContainer=document.querySelector(".search-container");
 
-function showHomeView(){homeSection.style.display="block";productSection.style.display="none";cartSection.style.display="none";menuSection.style.display="none";searchContainer.style.display="none";document.getElementById("cartFooter").style.display="none";}
-function showSearchView(){homeSection.style.display="none";productSection.style.display="flex";cartSection.style.display="none";menuSection.style.display="none";searchContainer.style.display="flex";document.getElementById("cartFooter").style.display="none";loadProducts(true);}
-function showCartView(){homeSection.style.display="none";productSection.style.display="none";cartSection.style.display="flex";menuSection.style.display="none";searchContainer.style.display="none";renderCart();}
-function showMenuView(){homeSection.style.display="none";productSection.style.display="none";cartSection.style.display="none";menuSection.style.display="block";searchContainer.style.display="none";}
+// Initial load → set home view without pushing extra state
+showHomeView();
+history.replaceState({ view: "home" }, "", "#home");
+loadProducts(false);
 
+// Navigation functions
+function showHomeView() {
+    homeSection.style.display = "block";
+    productSection.style.display = "none";
+    cartSection.style.display = "none";
+    menuSection.style.display = "none";
+    searchContainer.style.display = "none";
+    document.getElementById("cartFooter").style.display = "none";
+    history.pushState({ view: "home" }, "", "#home");
+}
+
+function showSearchView() {
+    homeSection.style.display = "none";
+    productSection.style.display = "flex";
+    cartSection.style.display = "none";
+    menuSection.style.display = "none";
+    searchContainer.style.display = "flex";
+    document.getElementById("cartFooter").style.display = "none";
+    loadProducts(true);
+    history.pushState({ view: "search" }, "", "#search");
+}
+
+function showCartView() {
+    homeSection.style.display = "none";
+    productSection.style.display = "none";
+    cartSection.style.display = "flex";
+    menuSection.style.display = "none";
+    searchContainer.style.display = "none";
+    renderCart();
+    history.pushState({ view: "cart" }, "", "#cart");
+}
+
+function showMenuView() {
+    homeSection.style.display = "none";
+    productSection.style.display = "none";
+    cartSection.style.display = "none";
+    menuSection.style.display = "block";
+    searchContainer.style.display = "none";
+    history.pushState({ view: "menu" }, "", "#menu");
+}
+
+// Handle back button
+window.addEventListener("popstate", (event) => {
+    const state = event.state;
+    if(!state || state.view === "home") showHomeView();
+    else if(state.view === "search") showSearchView();
+    else if(state.view === "cart") showCartView();
+    else if(state.view === "menu") showMenuView();
+});
 /* Bottom Navigation */
 document.getElementById("homeIcon").addEventListener("click",showHomeView);
 document.getElementById("searchIcon").addEventListener("click",showSearchView);
 document.getElementById("cartIcon").addEventListener("click",showCartView);
 document.getElementById("menuIcon").addEventListener("click",showMenuView);
+
+/*OPEN FULL VIEW*/
+function openFullView(p){
+    document.getElementById("fullView").style.display="block";
+    history.pushState({ view: "full" }, "", "");
+  // Handle mobile back button to close full view
+function handleFullViewBack(event) {
+    const state = event.state;
+    if (!state || state.view !== "full") {
+        document.getElementById("fullView").style.display = "none";
+        window.removeEventListener("popstate", handleFullViewBack); // clean up
+    }
+}
+window.addEventListener("popstate", handleFullViewBack);
+
+    const imgBox = document.getElementById("fullViewImages");
+    imgBox.innerHTML = "";
+
+    // Collect all images
+    const imgs = [p.image, p.image2, p.image3, p.image4, p.image5].filter(x => x);
+
+    // Create slideshow images
+    imgs.forEach(src => {
+        const im = document.createElement("img");
+        im.src = src;
+        imgBox.appendChild(im);
+    });
+
+    // Fill details
+    document.getElementById("fvName").innerText = p.name;
+    document.getElementById("fvPrice").innerText = "Rs. " + p.price;
+    document.getElementById("fvDesc").innerText = p.description;
+
+// ✅ Full View ADD button event 
+document.getElementById("fvAddBtn").addEventListener("click", function (event) {
+
+    event.stopPropagation();  // ⛔ Prevent image click function
+
+    // Read product details from full view
+    const name = document.getElementById("fvName").innerText;
+    const price = document.getElementById("fvPrice").innerText.replace("Rs. ", "") || "0";
+    const desc = document.getElementById("fvDesc").innerText;
+
+    // Get currently displayed image
+    const activeImg = document.querySelector("#fullViewImages img");
+    const image = activeImg ? activeImg.src : "";
+
+    // Add to cart logic
+    const existing = cart.find(item => item.name === name);
+
+    if (existing) {
+        existing.qty += 1;
+    } else {
+        cart.push({
+            name: name,
+            desc: desc,
+            price: price,
+            image: image,
+            qty: 1
+        });
+    }
+
+    renderCart();
+    showToast("Item added to cart!");
+});
+}
+
+// Close full screen
+document.getElementById("fullViewClose").onclick = () => {
+    document.getElementById("fullView").style.display="none";
+  history.back();
+};
 
 /* Menu Buttons */
 document.getElementById("menuHome").addEventListener("click",showHomeView);
@@ -257,7 +455,7 @@ document.getElementById("menuHelp").addEventListener("click",()=>{
 document.getElementById("closeInfo").addEventListener("click",()=>{infoPopup.style.display="none";});
 
 /* Splash Removal */
-window.addEventListener("load",()=>{setTimeout(()=>document.querySelector(".splash").style.display="none",2200);});
+window.addEventListener("load",()=>{setTimeout(()=>document.querySelector(".splash").style.display="none",2200);})
 
 /* Toast Function */
 function showToast(message){
@@ -322,12 +520,8 @@ document.getElementById("searchInput").addEventListener("input",e=>{
     renderProducts(filtered);
   });
 });
+  
 
-/* Initial View */
-showHomeView();
-loadProducts(false);
 </script>
 </body>
 </html>
-
-
