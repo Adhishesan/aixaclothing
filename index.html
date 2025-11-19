@@ -397,34 +397,27 @@ window.addEventListener("popstate", handleFullViewBack);
     document.getElementById("fvPrice").innerText = "Rs. " + p.price;
     document.getElementById("fvDesc").innerText = p.description;
 
-// ✅ Full View ADD button event 
-document.getElementById("fvAddBtn").addEventListener("click", function (event) {
+const fvAddBtn = document.getElementById("fvAddBtn");
 
-    event.stopPropagation();  // ⛔ Prevent image click function
+// Remove old listeners by replacing the button with a clone
+fvAddBtn.replaceWith(fvAddBtn.cloneNode(true));
 
-    // Read product details from full view
+// Get the new button
+const newBtn = document.getElementById("fvAddBtn");
+
+// Add the click event for this product
+newBtn.addEventListener("click", function(event) {
+    event.stopPropagation();
+
     const name = document.getElementById("fvName").innerText;
     const price = document.getElementById("fvPrice").innerText.replace("Rs. ", "") || "0";
     const desc = document.getElementById("fvDesc").innerText;
-
-    // Get currently displayed image
     const activeImg = document.querySelector("#fullViewImages img");
     const image = activeImg ? activeImg.src : "";
 
-    // Add to cart logic
     const existing = cart.find(item => item.name === name);
-
-    if (existing) {
-        existing.qty += 1;
-    } else {
-        cart.push({
-            name: name,
-            desc: desc,
-            price: price,
-            image: image,
-            qty: 1
-        });
-    }
+    if (existing) existing.qty += 1;
+    else cart.push({ name, desc, price, image, qty: 1 });
 
     renderCart();
     showToast("Item added to cart!");
